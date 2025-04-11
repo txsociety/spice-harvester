@@ -34,11 +34,16 @@ type storage interface {
 }
 
 func New(ls []config.LiteServer) (*Client, error) {
-	api, err := liteapi.NewClient(
-		liteapi.WithLiteServers(ls),
-		liteapi.WithMaxConnectionsNumber(len(ls)),
-		// TODO: set trustedBlock
-	)
+	options := make([]liteapi.Option, 0)
+	if len(ls) > 0 {
+		options = append(options, liteapi.WithLiteServers(ls))
+		options = append(options, liteapi.WithMaxConnectionsNumber(len(ls)))
+	} else {
+		options = append(options, liteapi.Mainnet())
+		slog.Warn("liteservers are not set, retrieving liteservers from global config")
+	}
+	// TODO: set trustedBlock
+	api, err := liteapi.NewClient(options...)
 	if err != nil {
 		return nil, err
 	}

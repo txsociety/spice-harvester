@@ -160,6 +160,7 @@ You can specify them directly in the file [docker-compose.yml](/docker-compose.y
 | `POSTGRES_URI`      | string | yes       | URI for DB connection, example: <br/>`postgresql://POSTGRES_USER:POSTGRES_PASSWORD@harvester_postgres/harvester?sslmode=disable` <br/>It may differ when using the database outside of Docker                                                                                                                                                     |
 | `TOKEN`             | string | yes       | bearer token for accessing the private part of the API                                                                                                                                                                                                                                                                                            |
 | `RECIPIENT`         | string | yes       | wallet address for receiving payments in [raw or user-friendly form](https://docs.ton.org/v3/concepts/dive-into-ton/ton-blockchain/smart-contract-addresses/#address-formats)                                                                                                                                                                     |
+| `LITE_SERVERS`      | string | no        | list of liteservers in the form of `<IP1>:<PORT1>:<KEY1>,<IP2>:<PORT2>:<KEY2>` <br/>example: `5.9.10.15:48014:3XO67K/qi+gu3T9v8G2hx1yNmWZhccL3O7SoosFo8G0=` <br/>The list is automatically taken from [global-config.json](https://ton.org/global-config.json) if the variable is not set                                                         |
 | `LOG_LEVEL`         | string | no        | possible options: `DEBUG`, `INFO`, `WARN`, `ERROR`. Default: `INFO`                                                                                                                                                                                                                                                                               |
 | `JETTONS`           | string | no        | list of tokens for receiving payments: `ticker1 address1, ticker2 address2` <br/>example: `USDT EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs,NOT EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT`                                                                                                                                            |
 | `WEBHOOK_ENDPOINT`  | string | no        | endpoint for sending webhooks, example: `https://your-server.com/webhook`                                                                                                                                                                                                                                                                         |
@@ -181,9 +182,9 @@ HARVESTER_POSTGRES_PASSWORD="<postgres_password>"
 # mandatory parameters:
 HARVESTER_POSTGRES_URI="postgres://<postgres_user>:<postgres_password>@harvester_postgres/harvester?sslmode=disable"
 HARVESTER_API_TOKEN="<api_token>"
-HARVESTER_LITE_SERVERS="<IP>:<PORT>:<KEY>,5.9.10.15:48014:3XO67K/qi+gu3T9v8G2hx1yNmWZhccL3O7SoosFo8G0="
 HARVESTER_RECIPIENT="<wallet_address_for_receiving_payments>"
 # optional parameters:
+HARVESTER_LITE_SERVERS="<IP>:<PORT>:<KEY>,5.9.10.15:48014:3XO67K/qi+gu3T9v8G2hx1yNmWZhccL3O7SoosFo8G0="
 HARVESTER_KEY="<32_random_bytes_in_hex_representation>"
 HARVESTER_JETTONS="<ticker1> <address1>,<ticker2> <address2>,USDT EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"
 HARVESTER_WEBHOOK_ENDPOINT="https://your-server.com/webhook"
