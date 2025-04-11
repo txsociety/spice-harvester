@@ -50,37 +50,37 @@ type NewKey struct {
 }
 
 func (h *Handler) createInvoice(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	if r.Body == nil {
-		http.Error(w, "empty body", http.StatusBadRequest)
+		writeHttpError(w, "empty body", http.StatusBadRequest)
 		return
 	}
 	var data NewInvoice
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
-		http.Error(w, "invalid invoice data: "+err.Error(), http.StatusBadRequest)
+		writeHttpError(w, "invalid invoice data: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	recipient, err := h.db.GetRecipient(r.Context())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	invoice, err := h.convertNewInvoice(data, recipient)
 	if err != nil {
-		http.Error(w, "invoice data parsing error: "+err.Error(), http.StatusBadRequest)
+		writeHttpError(w, "invoice data parsing error: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	err = h.db.CreateInvoice(r.Context(), *invoice)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	res, err := core.ConvertInvoiceToPrintable(h.paymentPrefixes, *invoice, h.currencies, h.adnlAddress)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		slog.Error("encode invoice", "error", err)
@@ -88,25 +88,25 @@ func (h *Handler) createInvoice(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) getInvoice(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	id, err := core.ParseInvoiceID(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeHttpError(w, "invalid id", http.StatusBadRequest)
 		return
 	}
 	invoice, err := h.db.GetInvoice(r.Context(), id)
 	if err != nil && errors.Is(err, core.ErrNotFound) {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		writeHttpError(w, err.Error(), http.StatusNotFound)
 		return
 	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	res, err := core.ConvertInvoiceToPrintable(h.paymentPrefixes, invoice, h.currencies, h.adnlAddress)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		slog.Error("encode invoice", "error", err)
@@ -114,25 +114,25 @@ func (h *Handler) getInvoice(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) cancelInvoice(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	id, err := core.ParseInvoiceID(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeHttpError(w, "invalid id", http.StatusBadRequest)
 		return
 	}
 	invoice, err := h.db.CancelInvoice(r.Context(), id)
 	if err != nil && errors.Is(err, core.ErrNotFound) {
-		http.Error(w, "no waiting payment invoice found", http.StatusNotFound)
+		writeHttpError(w, "no waiting payment invoice found", http.StatusNotFound)
 		return
 	} else if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	res, err := core.ConvertInvoiceToPrintable(h.paymentPrefixes, invoice, h.currencies, h.adnlAddress)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		slog.Error("encode invoice", "error", err)
@@ -142,83 +142,81 @@ func (h *Handler) cancelInvoice(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) commitKey(w http.ResponseWriter, r *http.Request) {
 	// TODO: or disable if adnl address is nil
 	if r.Body == nil {
-		http.Error(w, "empty body", http.StatusBadRequest)
+		writeHttpError(w, "empty body", http.StatusBadRequest)
 		return
 	}
 	var data NewKey
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
-		http.Error(w, "invalid key data: "+err.Error(), http.StatusBadRequest)
+		writeHttpError(w, "invalid key data: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	account, err := ton.ParseAccountID(r.PathValue("account"))
 	if err != nil {
-		http.Error(w, "invalid account: "+err.Error(), http.StatusBadRequest)
+		writeHttpError(w, "invalid account: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	encryptionKey, err := convertNewKey(account, data)
 	if err != nil {
-		http.Error(w, "key parsing error: "+err.Error(), http.StatusBadRequest)
+		writeHttpError(w, "key parsing error: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 	err = h.db.SaveEncryptionKey(r.Context(), account, encryptionKey)
 	if err != nil {
-		http.Error(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
+		writeHttpError(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
 func (h *Handler) getEncryptedData(w http.ResponseWriter, r *http.Request) {
 	if h.ourEncryptionKey == nil {
-		http.Error(w, "encrypted data is not available", http.StatusLocked)
+		writeHttpError(w, "encrypted data is not available", http.StatusLocked)
 		return
 	}
-	w.Header().Set("Content-Type", "application/octet-stream")
 	id, err := core.ParseInvoiceID(r.PathValue("id"))
 	if err != nil {
-		http.Error(w, "invalid id", http.StatusBadRequest)
+		writeHttpError(w, "invalid id", http.StatusBadRequest)
 		return
 	}
 	invoice, err := h.db.GetInvoice(r.Context(), id)
 	if err != nil && errors.Is(err, core.ErrNotFound) {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		writeHttpError(w, err.Error(), http.StatusNotFound)
 		return
 	} else if err != nil {
-		http.Error(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
+		writeHttpError(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
 		return
 	}
 	if invoice.Status != core.PaidInvoiceStatus {
-		http.Error(w, "invalid invoice", http.StatusBadRequest)
+		writeHttpError(w, "invalid invoice", http.StatusBadRequest)
 		return
 	}
 	key, err := h.db.GetEncryptionKey(r.Context(), *invoice.PaidBy)
 	if err != nil && errors.Is(err, core.ErrNotFound) {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		writeHttpError(w, err.Error(), http.StatusNotFound)
 		return
 	} else if err != nil {
-		http.Error(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
+		writeHttpError(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
 		return
 	}
 	bytes, err := json.Marshal(invoice.Metadata)
 	if err != nil {
-		http.Error(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
+		writeHttpError(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
 		return
 	}
 	encrypted, err := encryptData(key, bytes, h.ourEncryptionKey)
 	if err != nil {
-		http.Error(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
+		writeHttpError(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
 		return
 	}
 	// TODO: need to return salt (our address) or use adnl address as salt
+	w.Header().Set("Content-Type", "application/octet-stream")
 	_, err = w.Write(encrypted)
 	if err != nil {
-		http.Error(w, core.ErrInternalServerError.Error(), http.StatusInternalServerError)
 		slog.Error("encode data", "error", err)
 	}
 }
 
 func (h *Handler) getInvoiceHistory(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	var (
 		limit int64          = 20
 		after core.InvoiceID // empty ID
@@ -227,29 +225,29 @@ func (h *Handler) getInvoiceHistory(w http.ResponseWriter, r *http.Request) {
 	if limitQuery := r.URL.Query().Get("limit"); len(limitQuery) > 0 {
 		limit, err = strconv.ParseInt(limitQuery, 10, 64)
 		if err != nil {
-			http.Error(w, "invalid limit: "+err.Error(), http.StatusBadRequest)
+			writeHttpError(w, "invalid limit: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
 	if afterQuery := r.URL.Query().Get("after"); len(afterQuery) > 0 {
 		id, err := core.ParseInvoiceID(afterQuery)
 		if err != nil {
-			http.Error(w, "invalid invoice ID: "+err.Error(), http.StatusBadRequest)
+			writeHttpError(w, "invalid invoice ID: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 		_, err = h.db.GetInvoice(r.Context(), id)
 		if err != nil && errors.Is(err, core.ErrNotFound) {
-			http.Error(w, "unknown invoice ID", http.StatusBadRequest)
+			writeHttpError(w, "unknown invoice ID", http.StatusBadRequest)
 			return
 		} else if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeHttpError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		after = id
 	} // else: after = empty ID
 	invoices, err := h.db.GetInvoices(r.Context(), after, limit)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	res := struct {
@@ -260,35 +258,25 @@ func (h *Handler) getInvoiceHistory(w http.ResponseWriter, r *http.Request) {
 	for _, inv := range invoices {
 		invoice, err := core.ConvertInvoiceToPrintable(h.paymentPrefixes, inv, h.currencies, h.adnlAddress)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			writeHttpError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		res.Invoices = append(res.Invoices, invoice)
 	}
+	w.Header().Set("Content-Type", "application/json")
 	err = json.NewEncoder(w).Encode(res)
 	if err != nil {
 		slog.Error("encode invoices", "error", err)
 	}
 }
 
-func (h *Handler) invoices(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		h.getInvoiceHistory(w, r)
-	case http.MethodPost:
-		h.createInvoice(w, r)
-	default:
-		writeHttpError(w, http.StatusMethodNotAllowed, "only POST or GET method is supported")
-		return
-	}
-}
-
 func RegisterHandlers(mux *http.ServeMux, h *Handler, token string) {
-	mux.HandleFunc("/v1/invoices", recoverMiddleware(authMiddleware(h.invoices, token)))
-	mux.HandleFunc("/v1/invoices/{id}", recoverMiddleware(authMiddleware(get(h.getInvoice), token)))
-	mux.HandleFunc("/v1/invoices/{id}/cancel", recoverMiddleware(authMiddleware(post(h.cancelInvoice), token)))
-	mux.HandleFunc("/v1/invoices/{id}/metadata", recoverMiddleware(get(h.getEncryptedData))) // public endpoint
-	mux.HandleFunc("/v1/keys/{account}/commit", recoverMiddleware(post(h.commitKey)))        // public endpoint
+	mux.HandleFunc("POST /tonpay/private/api/v1/invoice", recoverMiddleware(authMiddleware(h.createInvoice, token)))
+	mux.HandleFunc("GET /tonpay/private/api/v1/invoices", recoverMiddleware(authMiddleware(h.getInvoiceHistory, token)))
+	mux.HandleFunc("GET /tonpay/private/api/v1/invoices/{id}", recoverMiddleware(authMiddleware(h.getInvoice, token)))
+	mux.HandleFunc("POST /tonpay/private/api/v1/invoices/{id}/cancel", recoverMiddleware(authMiddleware(h.cancelInvoice, token)))
+	mux.HandleFunc("GET /tonpay/public/api/v1/invoices/{id}/metadata", recoverMiddleware(h.getEncryptedData)) // public endpoint
+	mux.HandleFunc("POST /tonpay/public/api/v1/keys/{account}/commit", recoverMiddleware(h.commitKey))        // public endpoint
 }
 
 func (h *Handler) convertNewInvoice(newInvoice NewInvoice, recipient ton.AccountID) (*core.Invoice, error) {

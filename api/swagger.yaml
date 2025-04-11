@@ -14,24 +14,7 @@ tags:
 
 paths:
 
-  /v1/invoices:
-    get:
-      summary: "Get invoice history"
-      operationId: getInvoiceHistory
-      tags:
-        - invoices
-      parameters:
-        - $ref: '#/components/parameters/queryLimit'
-        - $ref: '#/components/parameters/queryAfter'
-      responses:
-        '200':
-          description: invoices
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Invoices'
-        'default':
-          $ref: '#/components/responses/Error'
+  /tonpay/private/api/v1/invoice:
     post:
       summary: "New invoice"
       operationId: newInvoice
@@ -49,7 +32,26 @@ paths:
         'default':
           $ref: '#/components/responses/Error'
 
-  /v1/invoices/{id}:
+  /tonpay/private/api/v1/invoices:
+    get:
+      summary: "Get invoice history"
+      operationId: getInvoiceHistory
+      tags:
+        - invoices
+      parameters:
+        - $ref: '#/components/parameters/queryLimit'
+        - $ref: '#/components/parameters/queryAfter'
+      responses:
+        '200':
+          description: invoices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoices'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /tonpay/private/api/v1/invoices/{id}:
     get:
       summary: "Get invoice"
       operationId: getInvoice
@@ -67,7 +69,7 @@ paths:
         'default':
           $ref: '#/components/responses/Error'
 
-  /v1/invoices/{id}/cancel:
+  /tonpay/private/api/v1/invoices/{id}/cancel:
     post:
       summary: "Cancel invoice"
       operationId: cancelInvoice

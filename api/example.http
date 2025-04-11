@@ -1,5 +1,5 @@
 ###
-POST {{host}}/v1/invoices
+POST {{host}}/tonpay/private/api/v1/invoice
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -19,13 +19,13 @@ Content-Type: application/json
 }
 
 ###
-GET {{host}}/v1/invoices/03cfc582-b1c3-410a-a9a7-1f3afe326b3b
+GET {{host}}/tonpay/private/api/v1/invoices/03cfc582-b1c3-410a-a9a7-1f3afe326b3b
 Authorization: Bearer {{token}}
 
 ###
-POST {{host}}/v1/invoices/03cfc582-b1c3-410a-a9a7-1f3afe326b3b/cancel
+POST {{host}}/tonpay/private/api/v1/invoices/03cfc582-b1c3-410a-a9a7-1f3afe326b3b/cancel
 Authorization: Bearer {{token}}
 
 ###
-GET {{host}}/v1/invoices
+GET {{host}}/tonpay/private/api/v1/invoices
 Authorization: Bearer {{token}}
