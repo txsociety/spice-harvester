@@ -1,5 +1,7 @@
 # Spice harvester
 
+**!IMPORTANT!** The service is in the beta testing stage.
+
 The service facilitates payment tracking within the TON blockchain, offering a user-friendly API for generating invoices 
 in multiple currencies (TON, Jettons). It also features a mechanism to deliver purchase data for client-side display.
 
