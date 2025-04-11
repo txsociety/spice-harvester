@@ -97,7 +97,7 @@ In the REST API and notifications, invoices are presented in the following struc
 * `id` - a unique invoice identifier, publicly available and recorded on the blockchain upon payment. Essential for tracking invoice statuses through the API and accessing metadata.
 * `status` - the invoice's current status. Refer to the [Invoice state diagram](#Invoice-state-diagram).
 * `amount` - the total amount in the smallest indivisible units.
-* `currency` - the currency ticker; see the ticker chapter for details.
+* `currency` - the currency ticker; see [Currency tickers](#Currency-tickers).
 * `pay_to_address` - the recipient's wallet address (in raw format).
 * `payment_links` - a set of payment links in various formats.
 * `created_at` - the timestamp of invoice creation in Unix time.
@@ -106,6 +106,11 @@ In the REST API and notifications, invoices are presented in the following struc
 * `private_info` - non-public, arbitrary JSON data for API integration.
 * `metadata` - purchase information (format detailed in the [Metadata layout](#Metadata-layout)) intended for buyer display.
 * `overpayment` - information on any overpayments for the invoice, in the same units and currency as the amount. If a lesser amount than required is received, it will be recorded as an overpayment.
+
+### Currency tickers
+For TON, the ticker `TON` is always used.
+For other currencies, tickers are set by the administrator when configuring variable `JETTONS` ([Environment variables](#ENV-variables)).
+For payment processing, the Jetton address is always used. Tickers are only used for display in the invoice.
 
 ## Metadata layout
 
