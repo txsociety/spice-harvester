@@ -1,0 +1,290 @@
+openapi: 3.0.1
+info:
+  title: "Invoice API"
+  version: 0.0.1
+
+servers:
+  - url: "http://localhost:8081"
+
+tags:
+  - name: invoices
+    description: 'Endpoints for invoices'
+  - name: keys
+    description: 'Endpoints for keys'
+
+paths:
+
+  /v1/invoices:
+    get:
+      summary: "Get invoice history"
+      operationId: getInvoiceHistory
+      tags:
+        - invoices
+      parameters:
+        - $ref: '#/components/parameters/queryLimit'
+        - $ref: '#/components/parameters/queryAfter'
+      responses:
+        '200':
+          description: invoices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoices'
+        'default':
+          $ref: '#/components/responses/Error'
+    post:
+      summary: "New invoice"
+      operationId: newInvoice
+      tags:
+        - invoices
+      requestBody:
+        $ref: "#/components/requestBodies/NewInvoice"
+      responses:
+        '200':
+          description: invoice data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceData'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /v1/invoices/{id}:
+    get:
+      summary: "Get invoice"
+      operationId: getInvoice
+      tags:
+        - invoices
+      parameters:
+        - $ref: "#/components/parameters/invoiceID"
+      responses:
+        '200':
+          description: invoice data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceData'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /v1/invoices/{id}/cancel:
+    post:
+      summary: "Cancel invoice"
+      operationId: cancelInvoice
+      tags:
+        - invoices
+      parameters:
+        - $ref: '#/components/parameters/invoiceID'
+      responses:
+        '200':
+          description: invoice data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceData'
+        'default':
+          $ref: '#/components/responses/Error'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    invoiceID:
+      description: Invoice ID
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        example: "03cfc582-b1c3-410a-a9a7-1f3afe326b3b"
+    queryLimit:
+      description: Limit
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        default: 20
+        example: 50
+    queryAfter:
+      description: After invoice ID
+      in: query
+      name: after
+      required: false
+      schema:
+        type: string
+        example: "03cfc582-b1c3-410a-a9a7-1f3afe326b3b"
+
+  requestBodies:
+    NewInvoice:
+      description: "Data for creating new invoice"
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - amount
+              - currency
+              - life_time
+              - metadata
+            properties:
+              amount:
+                type: string
+                x-js-format: bigint
+                example: "597968399"
+              currency:
+                type: string
+                example: "TON"
+              life_time:
+                type: integer
+                format: int64
+                description: "seconds are expected"
+                example: 100
+              private_info:
+                additionalProperties: true
+                example: { "first_key": "1", "second_key": 2 }
+              metadata:
+                $ref: '#/components/schemas/InvoiceMetadata'
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+          example: "Unexpected error"
+    Invoices:
+      type: object
+      required:
+        - invoices
+        # TODO: maybe add next_after
+      properties:
+        invoices:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceData'
+    InvoiceData:
+      type: object
+      required:
+        - id
+        - status
+        - amount
+        - currency
+        - pay_to_address
+        - payment_links
+        - created_at
+        - expire_at
+        - updated_at
+        - private_info
+        - metadata
+        - overpayment
+      properties:
+        id:
+          type: string
+          example: "03cfc582-b1c3-410a-a9a7-1f3afe326b3b"
+        status:
+          $ref: '#/components/schemas/InvoiceStatus'
+        amount:
+          type: string
+          example: "1000000000"
+        currency:
+          type: string
+          example: "TON"
+        pay_to_address:
+          type: string
+          example: "0:ddb5988af3856a1c63f23d75571780547192850c5e703b710311462574e620a4"
+        payment_links:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            universal: "ton://transfer/UQ...rr?amount=123&bin=te...Fg&exp=1743082724"
+            tonkeeper: "https://app.tonkeeper.com/transfer/UQ...rr?amount=123&bin=te6...Fg&exp=1743082724"
+        created_at:
+          type: integer
+          format: int64
+          example: 1690889913000
+        expire_at:
+          type: integer
+          format: int64
+          example: 1690989913000
+        updated_at:
+          type: integer
+          format: int64
+          example: 1690889913000
+        private_info:
+          additionalProperties: true
+          example: { "first_key": "1", "second_key": 2 }
+        metadata:
+          additionalProperties: true
+          example: { "first_key": "1", "second_key": 2 }
+        overpayment:
+          type: string
+          example: "1000000000"
+        paid_by:
+          type: string
+          example: "0:35c4e768728f877e90820a25cac33e277c02f3385ced238a4dda38a312757bfe"
+        paid_at:
+          type: integer
+          format: int64
+          example: 1690889913000
+        tx_hash:
+          type: string
+          example: "9014c63f541245be77b01891f14dc715ab90ab4559e38c2bad881165b32953fc"
+    InvoiceStatus:
+      type: string
+      example: "waiting"
+      enum:
+        - waiting
+        - paid
+        - cancelled
+        - expired
+    InvoiceMetadata:
+      type: object
+      required:
+        - merchant_name
+        - goods
+        - mcc_code
+      properties:
+        merchant_name:
+          type: string
+          example: "Coffee shop"
+        merchant_url:
+          type: string
+          example: "https://coffee.com/"
+        merchant_logo:
+          type: string
+          example: "https://coffee.com/logo.png"
+        goods:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceItem'
+        mcc_code:
+          type: integer
+          format: int16
+          example: 5462
+    InvoiceItem:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "Latte 300ml"
+
+  responses:
+    Error:
+      description: Unexpected error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+security:
+  - bearerAuth: []
