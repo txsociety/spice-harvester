@@ -75,7 +75,7 @@ func (h *Handler) createInvoice(w http.ResponseWriter, r *http.Request) {
 		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	res, err := core.ConvertInvoiceToPrintable(h.paymentPrefixes, *invoice, h.currencies, h.adnlAddress)
+	res, err := core.ConvertInvoiceToPrintablePrivate(h.paymentPrefixes, *invoice, h.currencies, h.adnlAddress)
 	if err != nil {
 		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -101,7 +101,7 @@ func (h *Handler) getInvoice(w http.ResponseWriter, r *http.Request) {
 		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	res, err := core.ConvertInvoiceToPrintable(h.paymentPrefixes, invoice, h.currencies, h.adnlAddress)
+	res, err := core.ConvertInvoiceToPrintablePrivate(h.paymentPrefixes, invoice, h.currencies, h.adnlAddress)
 	if err != nil {
 		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -127,7 +127,7 @@ func (h *Handler) cancelInvoice(w http.ResponseWriter, r *http.Request) {
 		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	res, err := core.ConvertInvoiceToPrintable(h.paymentPrefixes, invoice, h.currencies, h.adnlAddress)
+	res, err := core.ConvertInvoiceToPrintablePrivate(h.paymentPrefixes, invoice, h.currencies, h.adnlAddress)
 	if err != nil {
 		writeHttpError(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -251,12 +251,12 @@ func (h *Handler) getInvoiceHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	res := struct {
-		Invoices []core.InvoicePrintable `json:"invoices"`
+		Invoices []core.PrivateInvoicePrintable `json:"invoices"`
 	}{
-		Invoices: make([]core.InvoicePrintable, 0),
+		Invoices: make([]core.PrivateInvoicePrintable, 0),
 	}
 	for _, inv := range invoices {
-		invoice, err := core.ConvertInvoiceToPrintable(h.paymentPrefixes, inv, h.currencies, h.adnlAddress)
+		invoice, err := core.ConvertInvoiceToPrintablePrivate(h.paymentPrefixes, inv, h.currencies, h.adnlAddress)
 		if err != nil {
 			writeHttpError(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -270,13 +270,42 @@ func (h *Handler) getInvoiceHistory(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) getInvoicePublic(w http.ResponseWriter, r *http.Request) {
+	id, err := core.ParseInvoiceID(r.PathValue("id"))
+	if err != nil {
+		writeHttpError(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+	invoice, err := h.db.GetInvoice(r.Context(), id)
+	if err != nil && errors.Is(err, core.ErrNotFound) {
+		writeHttpError(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	res, err := core.ConvertInvoiceToPrintablePublic(h.paymentPrefixes, invoice, h.currencies, h.adnlAddress)
+	if err != nil {
+		writeHttpError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	err = json.NewEncoder(w).Encode(res)
+	if err != nil {
+		slog.Error("encode invoice", "error", err)
+	}
+}
+
 func RegisterHandlers(mux *http.ServeMux, h *Handler, token string) {
+	// private endpoints
 	mux.HandleFunc("POST /tonpay/private/api/v1/invoice", recoverMiddleware(authMiddleware(h.createInvoice, token)))
 	mux.HandleFunc("GET /tonpay/private/api/v1/invoices", recoverMiddleware(authMiddleware(h.getInvoiceHistory, token)))
 	mux.HandleFunc("GET /tonpay/private/api/v1/invoices/{id}", recoverMiddleware(authMiddleware(h.getInvoice, token)))
 	mux.HandleFunc("POST /tonpay/private/api/v1/invoices/{id}/cancel", recoverMiddleware(authMiddleware(h.cancelInvoice, token)))
-	mux.HandleFunc("GET /tonpay/public/api/v1/invoices/{id}/metadata", recoverMiddleware(h.getEncryptedData)) // public endpoint
-	mux.HandleFunc("POST /tonpay/public/api/v1/keys/{account}/commit", recoverMiddleware(h.commitKey))        // public endpoint
+	// public endpoints
+	mux.HandleFunc("GET /tonpay/public/api/v1/invoices/{id}/metadata", recoverMiddleware(h.getEncryptedData))
+	mux.HandleFunc("POST /tonpay/public/api/v1/keys/{account}/commit", recoverMiddleware(h.commitKey))
+	mux.HandleFunc("GET /tonpay/public/api/v1/invoices/{id}", recoverMiddleware(h.getInvoicePublic))
 }
 
 func (h *Handler) convertNewInvoice(newInvoice NewInvoice, recipient ton.AccountID) (*core.Invoice, error) {

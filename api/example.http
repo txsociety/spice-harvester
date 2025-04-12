@@ -6,7 +6,9 @@ Content-Type: application/json
 {
   "amount": "100000000",
   "currency": "TON",
-  "description": "coffee shop",
+  "private_info": {
+    "order_number": 123
+  },
   "metadata": {
     "merchant_name": "Coffee shop",
     "merchant_url": "https://coffee.com/",
@@ -19,11 +21,14 @@ Content-Type: application/json
 }
 
 ###
-GET {{host}}/tonpay/private/api/v1/invoices/03cfc582-b1c3-410a-a9a7-1f3afe326b3b
+GET {{host}}/tonpay/private/api/v1/invoices/{{id}}
 Authorization: Bearer {{token}}
 
 ###
-POST {{host}}/tonpay/private/api/v1/invoices/03cfc582-b1c3-410a-a9a7-1f3afe326b3b/cancel
+GET {{host}}/tonpay/public/api/v1/invoices/{{id}}
+
+###
+POST {{host}}/tonpay/private/api/v1/invoices/{{id}}/cancel
 Authorization: Bearer {{token}}
 
 ###

@@ -28,7 +28,7 @@ func NewClient(webhookURL string) (*Client, error) {
 	}, nil
 }
 
-func (s *Client) Send(ctx context.Context, invoice core.InvoicePrintable) error {
+func (s *Client) Send(ctx context.Context, invoice core.PrivateInvoicePrintable) error {
 	jsonData, err := json.Marshal(invoice)
 	if err != nil {
 		return err

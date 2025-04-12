@@ -6,7 +6,7 @@ import (
 )
 
 type sender interface {
-	Send(ctx context.Context, invoice core.InvoicePrintable) error
+	Send(ctx context.Context, invoice core.PrivateInvoicePrintable) error
 }
 
 type storage interface {
