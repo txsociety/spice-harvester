@@ -51,7 +51,7 @@ Metadata is encrypted and can only be decrypted by the party that paid the invoi
 
 The use of this scenario does not require additional integration from the merchant. 
 During deployment, a proxy server will be launched through which wallet application will be able to obtain encrypted metadata.
-All other API endpoints are protected by a token, and data from them is not accessible to third-party applications.
+All private API endpoints are protected by a token, and data from them is not accessible to third-party applications.
 
 To deploy the service for the advanced scenario, use [Deploy with discoverable metadata](#Deploy-with-discoverable-metadata).
 
@@ -145,6 +145,16 @@ For consistent data display on the buyer's side, the schema is explicitly define
 
 You can receive notifications about invoice status changes via webhooks if you specify an `WEBHOOK_ENDPOINT` when deploying the service. 
 Any transition of an invoice from one state to another will trigger a notification with the [Invoice layout](#Invoice-layout) json of the invoice in its new state.
+
+## Payment methods
+
+The primary method for paying an invoice is a payment link. You can either provide the link directly to the payer or 
+encode it into a QR code and display the code. When using the payment link, the necessary information for metadata sharing will be attached. 
+This data will be encoded in binary format within the message.
+
+There is an alternative payment method. For this, you need to attach the invoice ID as a text comment during payment. 
+In this case, the necessary information for metadata detection will not be attached. Metadata and payment history will be unavailable.
+This method is not recommended by default and should only be used as a backup if the first method is unavailable.
 
 ## Deploy
 
