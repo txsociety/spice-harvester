@@ -11,6 +11,7 @@ in multiple currencies (TON, Jettons). It also features a mechanism to deliver p
 - [Metadata layout](#Metadata-layout)
 - [Invoice state diagram](#Invoice-state-diagram)
 - [Notifications](#Notifications)
+- [Payment methods](#Payment-methods)
 - [Deploy](#Deploy)
 
 ## Features
