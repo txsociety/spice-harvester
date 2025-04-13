@@ -214,7 +214,7 @@ docker compose -f docker-compose.yml up -d harvester-reverse-proxy
 docker compose -f docker-compose.yml up -d harvester-api
 ```
 
-**!IMPORTANT!** Similarly, to operate the proxy, you need to open the port (`10391` by default).
+**!IMPORTANT!** Similarly, to operate the proxy, you need to open the port (`9306/udp` by default).
 
 ### Update
 In some cases `sudo` may be required for `docker` command.

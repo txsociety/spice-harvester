@@ -49,7 +49,7 @@ services:
       dockerfile: Dockerfile
       target: ton-reverse-proxy
     ports:
-      - "10391:9306/udp" # also change PORT env if you want to change port here
+      - "9306:9306/udp" # also change PORT env if you want to change port here
     restart: unless-stopped
     environment:
       PROXY_PASS: "http://harvester_api:8081/"
