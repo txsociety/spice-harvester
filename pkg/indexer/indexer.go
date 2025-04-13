@@ -2,7 +2,6 @@ package indexer
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/tonkeeper/tongo/abi"
@@ -71,31 +70,40 @@ func extractNativePayments(tx core.Transaction, account core.Account) ([]core.Pa
 	if tx.InMessage.Type != "Int" { // not internal message
 		return nil, nil
 	}
-	if tx.InMessage.DecodedOperation != abi.InvoicePayloadMsgOp {
-		return nil, nil
-	}
 
 	var (
-		idBytes []byte
-		err     error
+		idS string
+		err error
 	)
-	if body, ok := tx.InMessage.DecodedBody.(map[string]any); ok {
-		idS, err := valueFromBody[string](body, "Id")
-		if err != nil {
-			return nil, err
+	switch tx.InMessage.DecodedOperation {
+	case abi.InvoicePayloadMsgOp:
+		body, ok := tx.InMessage.DecodedBody.(map[string]any)
+		if !ok {
+			return nil, errors.New("failed to extract invoice payload body")
 		}
-		idBytes, err = hex.DecodeString(idS)
+		idS, err = valueFromBody[string](body, "Id")
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("id not found in InvoicePayloadMsg: %w", err)
 		}
+	case abi.TextCommentMsgOp:
+		body, ok := tx.InMessage.DecodedBody.(map[string]any)
+		if !ok {
+			return nil, errors.New("failed to extract text comment body")
+		}
+		idS, err = valueFromBody[string](body, "Text")
+		if err != nil {
+			return nil, fmt.Errorf("text not found in TextCommentMsg: %w", err)
+		}
+	default:
+		return nil, nil
+	}
+	id, err := core.ParseInvoiceID(idS)
+	if err != nil {
+		return nil, nil
 	}
 
 	var res []core.Payment
 	tons := tx.InMessage.Value
-	id, err := core.InvoiceIdFromBytes(idBytes)
-	if err != nil {
-		return nil, nil
-	}
 	res = append(res, core.Payment{
 		InvoiceID: id,
 		PaidBy:    *tx.InMessage.Source,
@@ -143,6 +151,47 @@ func extractJettonPayments(tx core.Transaction, account core.Account) ([]core.Pa
 		if !ok {
 			return nil, fmt.Errorf("invalid decoded body")
 		}
+
+		var idS string
+
+		forwardPayload, err := valueFromBody[map[string]any](body, "ForwardPayload")
+		if err != nil {
+			return nil, fmt.Errorf("invalid ForwardPayload: %w", err)
+		}
+		value, err := valueFromBody[map[string]any](forwardPayload, "Value")
+		if err != nil {
+			return nil, fmt.Errorf("invalid ForwardPayload value: %w", err)
+		}
+		if len(value) == 0 {
+			return nil, nil
+		}
+		payload, err := valueFromBody[map[string]any](value, "Value")
+		if err != nil {
+			return nil, fmt.Errorf("invalid ForwardPayload payload: %w", err)
+		}
+		sumType, err := valueFromBody[string](value, "SumType")
+		if err != nil {
+			return nil, fmt.Errorf("sumType not found in ForwardPayload: %w", err)
+		}
+		switch sumType {
+		case abi.InvoicePayloadJettonOp:
+			idS, err = valueFromBody[string](payload, "Id")
+			if err != nil {
+				return nil, fmt.Errorf("id not found in InvoicePayloadJetton: %w", err)
+			}
+		case abi.TextCommentJettonOp:
+			idS, err = valueFromBody[string](payload, "Text")
+			if err != nil {
+				return nil, fmt.Errorf("text not found in TextCommentJetton: %w", err)
+			}
+		default:
+			return nil, nil
+		}
+		id, err := core.ParseInvoiceID(idS)
+		if err != nil {
+			return nil, nil
+		}
+
 		amountS, err := valueFromBody[string](body, "Amount")
 		if err != nil {
 			return nil, fmt.Errorf("invalid amount: %w", err)
@@ -160,24 +209,6 @@ func extractJettonPayments(tx core.Transaction, account core.Account) ([]core.Pa
 			return nil, fmt.Errorf("invalid sender: %w", err)
 		}
 
-		var idBytes []byte
-		if forwardPayload, err := valueFromBody[map[string]any](body, "ForwardPayload"); err == nil {
-			if value, err := valueFromBody[map[string]any](forwardPayload, "Value"); err == nil {
-				if sumType, _ := valueFromBody[string](value, "SumType"); sumType == "InvoicePayload" {
-					if payload, err := valueFromBody[map[string]any](value, "Value"); err == nil {
-						idS, err := valueFromBody[string](payload, "Id")
-						if err != nil {
-							return nil, err
-						}
-						idBytes, err = hex.DecodeString(idS)
-						if err != nil {
-							return nil, err
-						}
-					}
-				}
-			}
-		}
-
 		if outMsg.Destination == nil {
 			return nil, fmt.Errorf("empty destination from jetton notify")
 		}
@@ -185,10 +216,6 @@ func extractJettonPayments(tx core.Transaction, account core.Account) ([]core.Pa
 			return nil, fmt.Errorf("invalid destination from jetton notify")
 		}
 
-		id, err := core.InvoiceIdFromBytes(idBytes)
-		if err != nil {
-			return nil, nil
-		}
 		return []core.Payment{
 			{
 				InvoiceID: id,

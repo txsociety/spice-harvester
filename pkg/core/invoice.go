@@ -124,9 +124,6 @@ type Payment struct {
 type InvoiceID = uuid.UUID
 
 func ParseInvoiceID(id string) (InvoiceID, error) {
-	if len(id) == 0 {
-		return InvoiceID{}, errors.New("invalid id length")
-	}
 	res, err := uuid.Parse(id)
 	if err != nil {
 		return InvoiceID{}, err
@@ -143,17 +140,6 @@ func NewInvoiceID() InvoiceID {
 		panic(err)
 	}
 	return id
-}
-
-func InvoiceIdFromBytes(data []byte) (InvoiceID, error) {
-	res, err := uuid.FromBytes(data)
-	if err != nil {
-		return InvoiceID{}, err
-	}
-	if res.Version() != 7 {
-		return InvoiceID{}, fmt.Errorf("invalid invoice id")
-	}
-	return res, nil
 }
 
 var DefaultPaymentPrefixes = map[string]string{
