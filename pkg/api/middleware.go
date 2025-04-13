@@ -31,26 +31,6 @@ func authMiddleware(next func(http.ResponseWriter, *http.Request), token string)
 	}
 }
 
-func get(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			writeHttpError(w, http.StatusMethodNotAllowed, "only GET method is supported")
-			return
-		}
-		next(w, r)
-	}
-}
-
-func post(next func(http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			writeHttpError(w, http.StatusMethodNotAllowed, "only POST method is supported")
-			return
-		}
-		next(w, r)
-	}
-}
-
 func checkToken(req *http.Request, token string) bool {
 	auth := strings.Split(req.Header.Get("authorization"), " ")
 	if len(auth) != 2 {
@@ -65,7 +45,7 @@ func checkToken(req *http.Request, token string) bool {
 	return false
 }
 
-func writeHttpError(resp http.ResponseWriter, status int, comment string) {
+func writeHttpError(resp http.ResponseWriter, comment string, status int) {
 	body := struct {
 		Error string `json:"error"`
 	}{

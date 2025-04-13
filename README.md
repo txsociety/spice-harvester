@@ -51,7 +51,7 @@ Metadata is encrypted and can only be decrypted by the party that paid the invoi
 
 The use of this scenario does not require additional integration from the merchant. 
 During deployment, a proxy server will be launched through which wallet application will be able to obtain encrypted metadata.
-All other API endpoints are protected by a token, and data from them is not accessible to third-party applications.
+All private API endpoints are protected by a token, and data from them is not accessible to third-party applications.
 
 To deploy the service for the advanced scenario, use [Deploy with discoverable metadata](#Deploy-with-discoverable-metadata).
 
@@ -146,6 +146,16 @@ For consistent data display on the buyer's side, the schema is explicitly define
 You can receive notifications about invoice status changes via webhooks if you specify an `WEBHOOK_ENDPOINT` when deploying the service. 
 Any transition of an invoice from one state to another will trigger a notification with the [Invoice layout](#Invoice-layout) json of the invoice in its new state.
 
+## Payment methods
+
+The primary method for paying an invoice is a payment link. You can either provide the link directly to the payer or 
+encode it into a QR code and display the code. When using the payment link, the necessary information for metadata sharing will be attached. 
+This data will be encoded in binary format within the message.
+
+There is an alternative payment method. For this, you need to attach the invoice ID as a text comment during payment. 
+In this case, the necessary information for metadata detection will not be attached. Metadata and payment history will be unavailable.
+This method is not recommended by default and should only be used as a backup if the first method is unavailable.
+
 ## Deploy
 
 To deploy the service, you will need to fill in the [Environment variables](#ENV-variables).  
@@ -160,6 +170,7 @@ You can specify them directly in the file [docker-compose.yml](/docker-compose.y
 | `POSTGRES_URI`      | string | yes       | URI for DB connection, example: <br/>`postgresql://POSTGRES_USER:POSTGRES_PASSWORD@harvester_postgres/harvester?sslmode=disable` <br/>It may differ when using the database outside of Docker                                                                                                                                                     |
 | `TOKEN`             | string | yes       | bearer token for accessing the private part of the API                                                                                                                                                                                                                                                                                            |
 | `RECIPIENT`         | string | yes       | wallet address for receiving payments in [raw or user-friendly form](https://docs.ton.org/v3/concepts/dive-into-ton/ton-blockchain/smart-contract-addresses/#address-formats)                                                                                                                                                                     |
+| `LITE_SERVERS`      | string | no        | list of liteservers in the form of `<IP1>:<PORT1>:<KEY1>,<IP2>:<PORT2>:<KEY2>` <br/>example: `5.9.10.15:48014:3XO67K/qi+gu3T9v8G2hx1yNmWZhccL3O7SoosFo8G0=` <br/>The list is automatically taken from [global-config.json](https://ton.org/global-config.json) if the variable is not set                                                         |
 | `LOG_LEVEL`         | string | no        | possible options: `DEBUG`, `INFO`, `WARN`, `ERROR`. Default: `INFO`                                                                                                                                                                                                                                                                               |
 | `JETTONS`           | string | no        | list of tokens for receiving payments: `ticker1 address1, ticker2 address2` <br/>example: `USDT EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs,NOT EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT`                                                                                                                                            |
 | `WEBHOOK_ENDPOINT`  | string | no        | endpoint for sending webhooks, example: `https://your-server.com/webhook`                                                                                                                                                                                                                                                                         |
@@ -181,9 +192,9 @@ HARVESTER_POSTGRES_PASSWORD="<postgres_password>"
 # mandatory parameters:
 HARVESTER_POSTGRES_URI="postgres://<postgres_user>:<postgres_password>@harvester_postgres/harvester?sslmode=disable"
 HARVESTER_API_TOKEN="<api_token>"
-HARVESTER_LITE_SERVERS="<IP>:<PORT>:<KEY>,5.9.10.15:48014:3XO67K/qi+gu3T9v8G2hx1yNmWZhccL3O7SoosFo8G0="
 HARVESTER_RECIPIENT="<wallet_address_for_receiving_payments>"
 # optional parameters:
+HARVESTER_LITE_SERVERS="<IP>:<PORT>:<KEY>,5.9.10.15:48014:3XO67K/qi+gu3T9v8G2hx1yNmWZhccL3O7SoosFo8G0="
 HARVESTER_KEY="<32_random_bytes_in_hex_representation>"
 HARVESTER_JETTONS="<ticker1> <address1>,<ticker2> <address2>,USDT EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"
 HARVESTER_WEBHOOK_ENDPOINT="https://your-server.com/webhook"
@@ -213,7 +224,7 @@ docker compose -f docker-compose.yml up -d harvester-reverse-proxy
 docker compose -f docker-compose.yml up -d harvester-api
 ```
 
-**!IMPORTANT!** Similarly, to operate the proxy, you need to open the port (`10391` by default).
+**!IMPORTANT!** Similarly, to operate the proxy, you need to open the port (`9306/udp` by default).
 
 ### Update
 In some cases `sudo` may be required for `docker` command.

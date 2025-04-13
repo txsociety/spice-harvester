@@ -67,7 +67,7 @@ func (n *Notifier) runNotifier(ctx context.Context, wg *sync.WaitGroup) {
 
 func (n *Notifier) notify(ctx context.Context, invoices []core.Invoice) error {
 	for _, invoice := range invoices {
-		invoiceP, err := core.ConvertInvoiceToPrintable(n.paymentPrefixes, invoice, n.currencies, n.adnlAddress)
+		invoiceP, err := core.ConvertInvoiceToPrintablePrivate(n.paymentPrefixes, invoice, n.currencies, n.adnlAddress)
 		if err != nil {
 			slog.Error("convert invoice to printable", "error", err.Error())
 			continue // can not send this invoice

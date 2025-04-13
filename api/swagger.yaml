@@ -14,24 +14,7 @@ tags:
 
 paths:
 
-  /v1/invoices:
-    get:
-      summary: "Get invoice history"
-      operationId: getInvoiceHistory
-      tags:
-        - invoices
-      parameters:
-        - $ref: '#/components/parameters/queryLimit'
-        - $ref: '#/components/parameters/queryAfter'
-      responses:
-        '200':
-          description: invoices
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Invoices'
-        'default':
-          $ref: '#/components/responses/Error'
+  /tonpay/private/api/v1/invoice:
     post:
       summary: "New invoice"
       operationId: newInvoice
@@ -49,9 +32,28 @@ paths:
         'default':
           $ref: '#/components/responses/Error'
 
-  /v1/invoices/{id}:
+  /tonpay/private/api/v1/invoices:
     get:
-      summary: "Get invoice"
+      summary: "Get invoice history"
+      operationId: getInvoiceHistory
+      tags:
+        - invoices
+      parameters:
+        - $ref: '#/components/parameters/queryLimit'
+        - $ref: '#/components/parameters/queryAfter'
+      responses:
+        '200':
+          description: invoices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invoices'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /tonpay/private/api/v1/invoices/{id}:
+    get:
+      summary: "Get invoice with private data"
       operationId: getInvoice
       tags:
         - invoices
@@ -67,7 +69,26 @@ paths:
         'default':
           $ref: '#/components/responses/Error'
 
-  /v1/invoices/{id}/cancel:
+  /tonpay/public/api/v1/invoices/{id}:
+    get:
+      security: []  # skip auth for public method
+      summary: "Get invoice with public data"
+      operationId: getInvoicePublic
+      tags:
+        - invoices
+      parameters:
+        - $ref: "#/components/parameters/invoiceID"
+      responses:
+        '200':
+          description: invoice data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicePublicData'
+        'default':
+          $ref: '#/components/responses/Error'
+
+  /tonpay/private/api/v1/invoices/{id}/cancel:
     post:
       summary: "Cancel invoice"
       operationId: cancelInvoice
@@ -170,6 +191,20 @@ components:
           items:
             $ref: '#/components/schemas/InvoiceData'
     InvoiceData:
+      allOf:
+        - $ref: '#/components/schemas/InvoicePublicData'
+        - type: object
+          required:
+            - private_info
+            - metadata
+          properties:
+            private_info:
+              additionalProperties: true
+              example: { "first_key": "1", "second_key": 2 }
+            metadata:
+              additionalProperties: true
+              example: { "first_key": "1", "second_key": 2 }
+    InvoicePublicData:
       type: object
       required:
         - id
@@ -181,8 +216,6 @@ components:
         - created_at
         - expire_at
         - updated_at
-        - private_info
-        - metadata
         - overpayment
       properties:
         id:
@@ -218,12 +251,6 @@ components:
           type: integer
           format: int64
           example: 1690889913000
-        private_info:
-          additionalProperties: true
-          example: { "first_key": "1", "second_key": 2 }
-        metadata:
-          additionalProperties: true
-          example: { "first_key": "1", "second_key": 2 }
         overpayment:
           type: string
           example: "1000000000"

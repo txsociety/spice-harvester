@@ -36,25 +36,29 @@ type Invoice struct {
 	TxHash      *ton.Bits256
 }
 
-type InvoicePrintable struct {
-	ID           string                     `json:"id"`
-	Status       string                     `json:"status"`
-	Amount       string                     `json:"amount"`
-	Currency     string                     `json:"currency"`
-	Recipient    string                     `json:"pay_to_address"`
-	PaymentLinks map[string]string          `json:"payment_links"`
-	CreatedAt    int64                      `json:"created_at"`
-	ExpireAt     int64                      `json:"expire_at"`
-	UpdatedAt    int64                      `json:"updated_at"`
-	PrivateInfo  map[string]json.RawMessage `json:"private_info"`
-	Metadata     map[string]json.RawMessage `json:"metadata"`
-	Overpayment  string                     `json:"overpayment"`
-	PaidBy       string                     `json:"paid_by,omitempty"`
-	PaidAt       *int64                     `json:"paid_at,omitempty"`
-	TxHash       string                     `json:"tx_hash,omitempty"`
+type PrivateInvoicePrintable struct {
+	PublicInvoicePrintable
+	PrivateInfo map[string]json.RawMessage `json:"private_info"`
+	Metadata    map[string]json.RawMessage `json:"metadata"`
 }
 
-func ConvertInvoiceToPrintable(prefixes map[string]string, invoice Invoice, currencies map[string]Currency, adnlAddress *ton.Bits256) (InvoicePrintable, error) {
+type PublicInvoicePrintable struct {
+	ID           string            `json:"id"`
+	Status       string            `json:"status"`
+	Amount       string            `json:"amount"`
+	Currency     string            `json:"currency"`
+	Recipient    string            `json:"pay_to_address"`
+	PaymentLinks map[string]string `json:"payment_links"`
+	CreatedAt    int64             `json:"created_at"`
+	ExpireAt     int64             `json:"expire_at"`
+	UpdatedAt    int64             `json:"updated_at"`
+	Overpayment  string            `json:"overpayment"`
+	PaidBy       string            `json:"paid_by,omitempty"`
+	PaidAt       *int64            `json:"paid_at,omitempty"`
+	TxHash       string            `json:"tx_hash,omitempty"`
+}
+
+func ConvertInvoiceToPrintablePublic(prefixes map[string]string, invoice Invoice, currencies map[string]Currency, adnlAddress *ton.Bits256) (PublicInvoicePrintable, error) {
 	ticker := ""
 	for t, c := range currencies {
 		if c == invoice.Currency {
@@ -62,9 +66,9 @@ func ConvertInvoiceToPrintable(prefixes map[string]string, invoice Invoice, curr
 		}
 	}
 	if len(ticker) == 0 {
-		return InvoicePrintable{}, fmt.Errorf("currency not found: %s", invoice.Currency.String())
+		return PublicInvoicePrintable{}, fmt.Errorf("currency not found: %s", invoice.Currency.String())
 	}
-	res := InvoicePrintable{
+	res := PublicInvoicePrintable{
 		ID:           invoice.ID.String(),
 		Status:       string(invoice.Status),
 		Amount:       invoice.Amount.String(),
@@ -73,15 +77,13 @@ func ConvertInvoiceToPrintable(prefixes map[string]string, invoice Invoice, curr
 		CreatedAt:    invoice.CreatedAt.Unix(),
 		ExpireAt:     invoice.ExpireAt.Unix(),
 		UpdatedAt:    invoice.UpdatedAt.Unix(),
-		PrivateInfo:  invoice.PrivateInfo,
-		Metadata:     invoice.Metadata,
 		Overpayment:  invoice.Overpayment.String(),
 		PaymentLinks: make(map[string]string, len(prefixes)),
 	}
 	for name, prefix := range prefixes {
 		paymentLink, err := GeneratePaymentLink(prefix, invoice, adnlAddress)
 		if err != nil {
-			return InvoicePrintable{}, err
+			return PublicInvoicePrintable{}, err
 		}
 		res.PaymentLinks[name] = paymentLink
 	}
@@ -98,6 +100,18 @@ func ConvertInvoiceToPrintable(prefixes map[string]string, invoice Invoice, curr
 	return res, nil
 }
 
+func ConvertInvoiceToPrintablePrivate(prefixes map[string]string, invoice Invoice, currencies map[string]Currency, adnlAddress *ton.Bits256) (PrivateInvoicePrintable, error) {
+	publicInvoice, err := ConvertInvoiceToPrintablePublic(prefixes, invoice, currencies, adnlAddress)
+	if err != nil {
+		return PrivateInvoicePrintable{}, err
+	}
+	return PrivateInvoicePrintable{
+		PublicInvoicePrintable: publicInvoice,
+		PrivateInfo:            invoice.PrivateInfo,
+		Metadata:               invoice.Metadata,
+	}, nil
+}
+
 type Payment struct {
 	InvoiceID InvoiceID
 	Currency  Currency
@@ -110,9 +124,6 @@ type Payment struct {
 type InvoiceID = uuid.UUID
 
 func ParseInvoiceID(id string) (InvoiceID, error) {
-	if len(id) == 0 {
-		return InvoiceID{}, errors.New("invalid id length")
-	}
 	res, err := uuid.Parse(id)
 	if err != nil {
 		return InvoiceID{}, err
@@ -129,17 +140,6 @@ func NewInvoiceID() InvoiceID {
 		panic(err)
 	}
 	return id
-}
-
-func InvoiceIdFromBytes(data []byte) (InvoiceID, error) {
-	res, err := uuid.FromBytes(data)
-	if err != nil {
-		return InvoiceID{}, err
-	}
-	if res.Version() != 7 {
-		return InvoiceID{}, fmt.Errorf("invalid invoice id")
-	}
-	return res, nil
 }
 
 var DefaultPaymentPrefixes = map[string]string{

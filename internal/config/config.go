@@ -16,7 +16,7 @@ type Config struct {
 	LogLevel        slog.Level          `env:"LOG_LEVEL" envDefault:"INFO"`
 	PostgresURI     string              `env:"POSTGRES_URI,required"`
 	Token           string              `env:"TOKEN,required"`
-	LiteServers     []config.LiteServer `env:"LITE_SERVERS,required"`
+	LiteServers     []config.LiteServer `env:"LITE_SERVERS"`
 	Recipient       ton.AccountID       `env:"RECIPIENT,required"`
 	Jettons         []jetton            `env:"JETTONS"`
 	WebhookEndpoint string              `env:"WEBHOOK_ENDPOINT"`
