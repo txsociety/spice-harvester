@@ -1,5 +1,7 @@
 # Spice harvester
 
+[![Telegram chat][telegram-svg]][telegram-url]
+
 **!IMPORTANT!** The service is in the beta testing stage.
 
 The service facilitates payment tracking within the TON blockchain, offering a user-friendly API for generating invoices 
@@ -265,3 +267,7 @@ Example of key generation in Linux:
 ```bash
 openssl rand -hex 32
 ```
+
+<!-- Badges -->
+[telegram-url]: https://t.me/txsociety
+[telegram-svg]: https://img.shields.io/badge/telegram-chat-blue?color=blue&logo=telegram&logoColor=white
