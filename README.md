@@ -82,6 +82,11 @@ In the REST API and notifications, invoices are presented in the following struc
   "created_at": 1744063284,
   "expire_at": 1744066284,
   "updated_at": 1744063284,
+  "jetton_info": {
+     "address": "0:f0b5cc399ba3d9055e839944c3ae3824d5d5b49de1b59c45f2161a8d5bcd7f08",
+     "decimals": 9
+  },   
+  "payload": "te6...dh",
   "private_info": {
       "order_number": 123
   },
@@ -108,6 +113,8 @@ In the REST API and notifications, invoices are presented in the following struc
 * `created_at` - the timestamp of invoice creation in Unix time.
 * `expire_at` - the invoice's expiration timestamp (Unix time). Payments received after this time will not mark the invoice as paid.
 * `updated_at` - the timestamp of the last invoice change in Unix time.
+* `jetton_info` - optional field. If the payment currency is Jetton, this displays the decimals of the Jetton (set during API configuration) and the Jetton master contract address.
+* `payload` - a base64-encoded cell, serving as the body for TON transfers and as the forward payload for Jetton transfers, is used in message assembly for tonconnect.
 * `private_info` - non-public, arbitrary JSON data for API integration.
 * `metadata` - purchase information (format detailed in the [Metadata layout](#Metadata-layout)) intended for buyer display.
 * `overpayment` - information on any overpayments for the invoice, in the same units and currency as the amount. If a lesser amount than required is received, it will be recorded as an overpayment.
@@ -175,11 +182,27 @@ You can specify them directly in the file [docker-compose.yml](/docker-compose.y
 | `RECIPIENT`         | string | yes       | wallet address for receiving payments in [raw or user-friendly form](https://docs.ton.org/v3/concepts/dive-into-ton/ton-blockchain/smart-contract-addresses/#address-formats)                                                                                                                                                                     |
 | `LITE_SERVERS`      | string | no        | list of liteservers in the form of `<IP1>:<PORT1>:<KEY1>,<IP2>:<PORT2>:<KEY2>` <br/>example: `5.9.10.15:48014:3XO67K/qi+gu3T9v8G2hx1yNmWZhccL3O7SoosFo8G0=` <br/>The list is automatically taken from [global-config.json](https://ton.org/global-config.json) if the variable is not set                                                         |
 | `LOG_LEVEL`         | string | no        | possible options: `DEBUG`, `INFO`, `WARN`, `ERROR`. Default: `INFO`                                                                                                                                                                                                                                                                               |
-| `JETTONS`           | string | no        | list of tokens for receiving payments: `ticker1 decimals1 address1, ticker2 decimals2 address2` <br/>example: `USDT 6 EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs,NOT 9 EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT`                                                                                                                    |
+| `JETTONS`           | string | no        | list of tokens for receiving payments: `ticker1 decimals1 address1, ticker2 decimals2 address2` (see [Configuring the Jetton list](#Configuring-the-Jetton-list)) <br/>example: `USDT 6 EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs,NOT 9 EQAvlWFDxGF2lXm67y4yzC17wYKD9A0guwPkMs1gOsM__NOT`                                                  |
 | `WEBHOOK_ENDPOINT`  | string | no        | endpoint for sending webhooks, example: `https://your-server.com/webhook`                                                                                                                                                                                                                                                                         |
 | `PAYMENT_PREFIXES`  | string | no        | list of prefixes for generating payment links: `name_1 prefix1,name_1 prefix2` <br/>The `name` is used as a key in the list of payment links (see [Invoice layout](#Invoice-layout)) <br/>The prefixes `ton://` with `universal` name and `https://app.tonkeeper.com/` with `tonkeeper` name are supported by default and do not need to be added |
 | `KEY`               | string | no        | 32 bytes written in hex format (see [Key generation](#Key-generation))                                                                                                                                                                                                                                                                            |
 | `EXTERNAL_IP`       | string | no        | external IP of the TON proxy. It can be determined automatically if not specified                                                                                                                                                                                                                                                                 |
+
+### Configuring the Jetton list
+
+**!IMPORTANT!** Exercise caution when selecting a Jetton for receiving payments. 
+Consider following the [recommendations](https://docs.ton.org/v3/guidelines/dapps/asset-processing/jettons#adding-new-jettons-for-asset-processing-and-initial-verification) 
+or choose a suitable token from the [ton-assets](https://github.com/tonkeeper/ton-assets/blob/main/jettons.json) or [Examples of trusted Jettons](#Examples-of-trusted-Jettons).
+
+* `Ticker` - arbitrary short text name of the currency. It must be unique for each currency. For example, TON is reserved by default (see [Currency tickers](#Currency-tickers)).
+* `Decimals` - this field is taken from the Jetton metadata (see [Jetton metadata](https://docs.ton.org/v3/guidelines/dapps/asset-processing/nft-processing/metadata-parsing#jetton-metadata-attributes)).
+* `Address` - Jetton master smart contract address (see [Jetton master](https://docs.ton.org/v3/guidelines/dapps/asset-processing/jettons#jetton-master-smart-contract)).
+
+### Examples of trusted Jettons
+
+| ENV STRING                                              |
+|---------------------------------------------------------|
+| USDT 6 EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs |
 
 ### .env file example
 
