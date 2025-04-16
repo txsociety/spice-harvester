@@ -8,6 +8,7 @@ import (
 	"github.com/txsociety/spice-harvester/pkg/core"
 	"log/slog"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -23,12 +24,13 @@ type Config struct {
 	PaymentPrefixes prefixes            `env:"PAYMENT_PREFIXES"`
 	// Key for generating a private key for metadata encryption and obtaining the adnl address of the proxy server
 	Key        string `env:"KEY"` // 32 bytes in hex representation,
-	Currencies map[string]core.Currency
+	Currencies map[string]core.ExtendedCurrency
 }
 
 type jetton struct {
-	Address ton.AccountID
-	Ticker  string
+	Address  ton.AccountID
+	Ticker   string
+	Decimals int
 }
 
 type prefixes map[string]string
@@ -38,7 +40,9 @@ func Load() Config {
 		c  Config
 		ll slog.Level
 	)
-	currencies := map[string]core.Currency{core.DefaultTonTicker: core.TonCurrency()} // TON tracking by default
+	currencies := map[string]core.ExtendedCurrency{
+		core.DefaultTonTicker: {Currency: core.TonCurrency()}, // TON tracking by default
+	}
 	c.PaymentPrefixes = make(prefixes)
 	for name, prefix := range core.DefaultPaymentPrefixes {
 		c.PaymentPrefixes[name] = prefix
@@ -68,17 +72,25 @@ func Load() Config {
 			addresses := make(map[ton.AccountID]struct{})
 			for _, s := range strings.Split(v, ",") {
 				vals := strings.Split(s, " ")
-				if len(vals) != 2 {
+				if len(vals) != 3 {
 					return nil, fmt.Errorf("invalid jetton config: %s", v)
 				}
-				addr, err := ton.ParseAccountID(vals[1])
+				addr, err := ton.ParseAccountID(vals[2])
 				if err != nil {
 					return nil, err
 				}
+				dec, err := strconv.Atoi(vals[1])
+				if err != nil {
+					return nil, err
+				}
+				if dec < 0 || dec > 255 {
+					return nil, fmt.Errorf("invalid jetton decimals (must be 0..255): %s", vals[1])
+				}
 				ticker := vals[0]
 				res = append(res, jetton{
-					Address: addr,
-					Ticker:  ticker,
+					Address:  addr,
+					Ticker:   ticker,
+					Decimals: dec,
 				})
 				if _, ok := currencies[ticker]; ok {
 					return nil, fmt.Errorf("duplicated jetton ticker: %s", v)
@@ -87,7 +99,7 @@ func Load() Config {
 					return nil, fmt.Errorf("duplicated jetton address: %s", v)
 				}
 				addresses[addr] = struct{}{}
-				currencies[ticker] = core.JettonCurrency(addr)
+				currencies[ticker] = core.ExtendedCurrency{Currency: core.JettonCurrency(addr), JettonDecimals: dec}
 			}
 			return res, nil
 		},

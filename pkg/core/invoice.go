@@ -42,6 +42,11 @@ type PrivateInvoicePrintable struct {
 	Metadata    map[string]json.RawMessage `json:"metadata"`
 }
 
+type JettonInfo struct {
+	Address  string `json:"address"`
+	Decimals int    `json:"decimals"`
+}
+
 type PublicInvoicePrintable struct {
 	ID           string            `json:"id"`
 	Status       string            `json:"status"`
@@ -56,17 +61,23 @@ type PublicInvoicePrintable struct {
 	PaidBy       string            `json:"paid_by,omitempty"`
 	PaidAt       *int64            `json:"paid_at,omitempty"`
 	TxHash       string            `json:"tx_hash,omitempty"`
+	JettonInfo   *JettonInfo       `json:"jetton_info,omitempty"`
+	Payload      string            `json:"payload"`
 }
 
-func ConvertInvoiceToPrintablePublic(prefixes map[string]string, invoice Invoice, currencies map[string]Currency, adnlAddress *ton.Bits256) (PublicInvoicePrintable, error) {
+func ConvertInvoiceToPrintablePublic(prefixes map[string]string, invoice Invoice, currencies map[string]ExtendedCurrency, adnlAddress *ton.Bits256) (PublicInvoicePrintable, error) {
 	ticker := ""
 	for t, c := range currencies {
-		if c == invoice.Currency {
+		if c.Currency == invoice.Currency {
 			ticker = t
 		}
 	}
 	if len(ticker) == 0 {
 		return PublicInvoicePrintable{}, fmt.Errorf("currency not found: %s", invoice.Currency.String())
+	}
+	payload, err := EncodePayload(invoice, adnlAddress, false)
+	if err != nil {
+		return PublicInvoicePrintable{}, err
 	}
 	res := PublicInvoicePrintable{
 		ID:           invoice.ID.String(),
@@ -79,6 +90,7 @@ func ConvertInvoiceToPrintablePublic(prefixes map[string]string, invoice Invoice
 		UpdatedAt:    invoice.UpdatedAt.Unix(),
 		Overpayment:  invoice.Overpayment.String(),
 		PaymentLinks: make(map[string]string, len(prefixes)),
+		Payload:      payload,
 	}
 	for name, prefix := range prefixes {
 		paymentLink, err := GeneratePaymentLink(prefix, invoice, adnlAddress)
@@ -97,10 +109,16 @@ func ConvertInvoiceToPrintablePublic(prefixes map[string]string, invoice Invoice
 	if invoice.TxHash != nil {
 		res.TxHash = invoice.TxHash.Hex()
 	}
+	if invoice.Currency.Type == Jetton {
+		res.JettonInfo = &JettonInfo{
+			Address:  invoice.Currency.Jetton().ToRaw(),
+			Decimals: currencies[ticker].JettonDecimals,
+		}
+	}
 	return res, nil
 }
 
-func ConvertInvoiceToPrintablePrivate(prefixes map[string]string, invoice Invoice, currencies map[string]Currency, adnlAddress *ton.Bits256) (PrivateInvoicePrintable, error) {
+func ConvertInvoiceToPrintablePrivate(prefixes map[string]string, invoice Invoice, currencies map[string]ExtendedCurrency, adnlAddress *ton.Bits256) (PrivateInvoicePrintable, error) {
 	publicInvoice, err := ConvertInvoiceToPrintablePublic(prefixes, invoice, currencies, adnlAddress)
 	if err != nil {
 		return PrivateInvoicePrintable{}, err
@@ -148,7 +166,7 @@ var DefaultPaymentPrefixes = map[string]string{
 }
 
 func GeneratePaymentLink(prefix string, invoice Invoice, adnlAddress *ton.Bits256) (string, error) {
-	payload, err := EncodePayload(invoice, adnlAddress)
+	payload, err := EncodePayload(invoice, adnlAddress, true)
 	if err != nil {
 		return "", err
 	}

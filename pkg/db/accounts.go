@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func (c *Connection) GetTrackedAccounts(ctx context.Context, recipient ton.AccountID, currencies map[string]core.Currency) (map[ton.AccountID]core.AccountInfo, error) {
+func (c *Connection) GetTrackedAccounts(ctx context.Context, recipient ton.AccountID, currencies map[string]core.ExtendedCurrency) (map[ton.AccountID]core.AccountInfo, error) {
 	var jettons []string
 	for _, cur := range currencies {
 		if cur.Type == core.Jetton {

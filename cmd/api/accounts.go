@@ -8,7 +8,7 @@ import (
 	"github.com/txsociety/spice-harvester/pkg/db"
 )
 
-func getAccountsForTracking(ctx context.Context, dbClient *db.Connection, bcClient *blockchain.Client, recipient ton.AccountID, currencies map[string]core.Currency) (map[ton.AccountID]core.AccountInfo, error) {
+func getAccountsForTracking(ctx context.Context, dbClient *db.Connection, bcClient *blockchain.Client, recipient ton.AccountID, currencies map[string]core.ExtendedCurrency) (map[ton.AccountID]core.AccountInfo, error) {
 	accounts, err := dbClient.GetTrackedAccounts(ctx, recipient, currencies)
 	if err != nil {
 		return nil, err

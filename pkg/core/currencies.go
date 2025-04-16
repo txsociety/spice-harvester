@@ -14,6 +14,11 @@ type Currency struct {
 	jettonMaster ton.AccountID
 }
 
+type ExtendedCurrency struct {
+	Currency
+	JettonDecimals int
+}
+
 type CurrencyType = string
 
 const (

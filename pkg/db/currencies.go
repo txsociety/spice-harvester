@@ -72,9 +72,9 @@ func (c *Connection) getCurrencyByID(ctx context.Context, currencyID uuid.UUID) 
 	return &res, nil
 }
 
-func (c *Connection) SaveCurrencies(ctx context.Context, currencies map[string]core.Currency) error {
+func (c *Connection) SaveCurrencies(ctx context.Context, currencies map[string]core.ExtendedCurrency) error {
 	for _, currency := range currencies {
-		err := c.saveCurrency(ctx, currency)
+		err := c.saveCurrency(ctx, currency.Currency)
 		if err != nil {
 			return err
 		}
