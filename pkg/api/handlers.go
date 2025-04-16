@@ -21,11 +21,11 @@ type Handler struct {
 	db               storage
 	adnlAddress      *ton.Bits256
 	paymentPrefixes  map[string]string
-	currencies       map[string]core.Currency
+	currencies       map[string]core.ExtendedCurrency
 	ourEncryptionKey ed25519.PrivateKey
 }
 
-func NewHandler(db storage, currencies map[string]core.Currency, adnlAddress *ton.Bits256, paymentPrefixes map[string]string, ourEncryptionKey ed25519.PrivateKey) *Handler {
+func NewHandler(db storage, currencies map[string]core.ExtendedCurrency, adnlAddress *ton.Bits256, paymentPrefixes map[string]string, ourEncryptionKey ed25519.PrivateKey) *Handler {
 	return &Handler{
 		db:               db,
 		currencies:       currencies,
@@ -328,7 +328,7 @@ func (h *Handler) convertNewInvoice(newInvoice NewInvoice, recipient ton.Account
 		ID:          core.NewInvoiceID(),
 		Status:      core.WaitingInvoiceStatus,
 		Amount:      amount,
-		Currency:    cur,
+		Currency:    cur.Currency,
 		CreatedAt:   now,
 		ExpireAt:    now.Add(time.Second * time.Duration(newInvoice.LifeTime)),
 		PrivateInfo: newInvoice.PrivateInfo,

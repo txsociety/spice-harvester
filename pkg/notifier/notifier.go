@@ -12,13 +12,13 @@ import (
 
 type Notifier struct {
 	sender          sender
-	currencies      map[string]core.Currency
+	currencies      map[string]core.ExtendedCurrency
 	adnlAddress     *ton.Bits256
 	paymentPrefixes map[string]string
 	storage         storage
 }
 
-func New(sender sender, currencies map[string]core.Currency, adnlAddress *ton.Bits256, paymentPrefixes map[string]string, storage storage) *Notifier {
+func New(sender sender, currencies map[string]core.ExtendedCurrency, adnlAddress *ton.Bits256, paymentPrefixes map[string]string, storage storage) *Notifier {
 	return &Notifier{
 		sender:          sender,
 		currencies:      currencies,

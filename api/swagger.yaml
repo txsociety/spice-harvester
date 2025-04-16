@@ -217,6 +217,7 @@ components:
         - expire_at
         - updated_at
         - overpayment
+        - payload
       properties:
         id:
           type: string
@@ -264,6 +265,24 @@ components:
         tx_hash:
           type: string
           example: "9014c63f541245be77b01891f14dc715ab90ab4559e38c2bad881165b32953fc"
+        payload:
+          type: string
+          description: "for transferring TON, it will be the body of the message, and for transferring Jettons, it's the forward payload (base64 format)"
+        jetton_info:
+          $ref: '#/components/schemas/JettonInfo'
+    JettonInfo:
+      type: object
+      required:
+        - address
+        - decimals
+      properties:
+        address:
+          type: string
+          format: address
+          example: 0:0BB5A9F69043EEBDDA5AD2E946EB953242BD8F603FE795D90698CEEC6BFC60A0
+        decimals:
+          type: integer
+          example: 9
     InvoiceStatus:
       type: string
       example: "waiting"

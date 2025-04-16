@@ -8,7 +8,7 @@ import (
 	"github.com/tonkeeper/tongo/ton"
 )
 
-func EncodePayload(invoice Invoice, adnlAddress *ton.Bits256) (string, error) {
+func EncodePayload(invoice Invoice, adnlAddress *ton.Bits256, urlSafe bool) (string, error) {
 	payload := abi.InvoicePayloadMsgBody{
 		Id:  tlb.Bits128(invoice.ID),
 		Url: abi.PaymentProviderUrl{SumType: "None"},
@@ -32,5 +32,8 @@ func EncodePayload(invoice Invoice, adnlAddress *ton.Bits256) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return base64.URLEncoding.EncodeToString(bytes), nil
+	if urlSafe {
+		return base64.URLEncoding.EncodeToString(bytes), nil
+	}
+	return base64.StdEncoding.EncodeToString(bytes), nil
 }
