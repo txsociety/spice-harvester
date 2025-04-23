@@ -23,15 +23,17 @@ type Handler struct {
 	paymentPrefixes  map[string]string
 	currencies       map[string]core.ExtendedCurrency
 	ourEncryptionKey ed25519.PrivateKey
+	domain           string
 }
 
-func NewHandler(db storage, currencies map[string]core.ExtendedCurrency, adnlAddress *ton.Bits256, paymentPrefixes map[string]string, ourEncryptionKey ed25519.PrivateKey) *Handler {
+func NewHandler(db storage, currencies map[string]core.ExtendedCurrency, adnlAddress *ton.Bits256, paymentPrefixes map[string]string, ourEncryptionKey ed25519.PrivateKey, domain string) *Handler {
 	return &Handler{
 		db:               db,
 		currencies:       currencies,
 		adnlAddress:      adnlAddress,
 		paymentPrefixes:  paymentPrefixes,
 		ourEncryptionKey: ourEncryptionKey,
+		domain:           domain,
 	}
 }
 
@@ -296,6 +298,26 @@ func (h *Handler) getInvoicePublic(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) getManifest(w http.ResponseWriter, r *http.Request) {
+	res := struct {
+		URL     string `json:"url"`
+		Name    string `json:"name"`
+		IconURL string `json:"iconUrl"`
+	}{
+		URL:     fmt.Sprintf("https://%s/", h.domain),
+		Name:    "Payment",
+		IconURL: fmt.Sprintf("https://%s/public/static/logo.png", h.domain),
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(res)
+	if err != nil {
+		slog.Error("encode manifest", "error", err)
+	}
+}
+
 func RegisterHandlers(mux *http.ServeMux, h *Handler, token string) {
 	// private endpoints
 	mux.HandleFunc("POST /tonpay/private/api/v1/invoice", recoverMiddleware(authMiddleware(h.createInvoice, token)))
@@ -306,6 +328,7 @@ func RegisterHandlers(mux *http.ServeMux, h *Handler, token string) {
 	mux.HandleFunc("GET /tonpay/public/api/v1/invoices/{id}/metadata", recoverMiddleware(h.getEncryptedData))
 	mux.HandleFunc("POST /tonpay/public/api/v1/keys/{account}/commit", recoverMiddleware(h.commitKey))
 	mux.HandleFunc("GET /tonpay/public/api/v1/invoices/{id}", recoverMiddleware(h.getInvoicePublic))
+	mux.HandleFunc("GET /tonpay/public/manifest", recoverMiddleware(h.getManifest))
 }
 
 func (h *Handler) convertNewInvoice(newInvoice NewInvoice, recipient ton.AccountID) (*core.Invoice, error) {

@@ -34,3 +34,6 @@ Authorization: Bearer {{token}}
 ###
 GET {{host}}/tonpay/private/api/v1/invoices
 Authorization: Bearer {{token}}
+
+###
+GET {{host}}/tonpay/public/manifest
