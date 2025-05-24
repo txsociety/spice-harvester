@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/ed25519"
+	"embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -16,6 +17,9 @@ import (
 	"strconv"
 	"time"
 )
+
+//go:embed static/*
+var staticFiles embed.FS
 
 type Handler struct {
 	db               storage
@@ -306,7 +310,7 @@ func (h *Handler) getManifest(w http.ResponseWriter, r *http.Request) {
 	}{
 		URL:     fmt.Sprintf("https://%s/", h.domain),
 		Name:    "Payment",
-		IconURL: fmt.Sprintf("https://%s/public/static/logo.png", h.domain),
+		IconURL: fmt.Sprintf("https://%s/tonpay/public/static/logo.png", h.domain),
 	}
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
@@ -316,6 +320,15 @@ func (h *Handler) getManifest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		slog.Error("encode manifest", "error", err)
 	}
+}
+
+func handleStatic(h http.Handler) http.Handler {
+	// TODO: add recover?
+	return http.StripPrefix("/tonpay/public", h)
+}
+
+func (h *Handler) getInvoiceRender(w http.ResponseWriter, r *http.Request) {
+	http.ServeFileFS(w, r, staticFiles, "static/index.html")
 }
 
 func RegisterHandlers(mux *http.ServeMux, h *Handler, token string) {
@@ -329,6 +342,8 @@ func RegisterHandlers(mux *http.ServeMux, h *Handler, token string) {
 	mux.HandleFunc("POST /tonpay/public/api/v1/keys/{account}/commit", recoverMiddleware(h.commitKey))
 	mux.HandleFunc("GET /tonpay/public/api/v1/invoices/{id}", recoverMiddleware(h.getInvoicePublic))
 	mux.HandleFunc("GET /tonpay/public/manifest", recoverMiddleware(h.getManifest))
+	mux.Handle("GET /tonpay/public/static/", handleStatic(http.FileServerFS(staticFiles)))
+	mux.HandleFunc("GET /tonpay/public/invoice/{id}", recoverMiddleware(h.getInvoiceRender))
 }
 
 func (h *Handler) convertNewInvoice(newInvoice NewInvoice, recipient ton.AccountID) (*core.Invoice, error) {
