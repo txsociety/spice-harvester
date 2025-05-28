@@ -33,7 +33,7 @@ func EncodePayload(invoice Invoice, adnlAddress *ton.Bits256, urlSafe bool) (str
 		return "", err
 	}
 	if urlSafe {
-		return base64.URLEncoding.EncodeToString(bytes), nil
+		return base64.RawURLEncoding.EncodeToString(bytes), nil
 	}
 	return base64.StdEncoding.EncodeToString(bytes), nil
 }
