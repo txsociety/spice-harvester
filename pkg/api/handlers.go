@@ -383,11 +383,14 @@ func convertNewKey(account ton.AccountID, newKey NewKey) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if len(signedEncryptionKey) != 64+32 {
-		return nil, errors.New("invalid encryption key")
+	if len(signedEncryptionKey) != 64+4+32 { // 64 - sign, 4 - role, 32 - key
+		return nil, errors.New("invalid encryption key len")
 	}
-	if !ed25519.Verify(pubkey, signedEncryptionKey[64:], signedEncryptionKey[:64]) {
-		return nil, errors.New("invalid encryption key")
+	if string(signedEncryptionKey[64:64+4]) != "meta" {
+		return nil, errors.New("invalid encryption key role")
+	}
+	if !ed25519.Verify(pubkey, signedEncryptionKey[64+4:], signedEncryptionKey[:64]) {
+		return nil, errors.New("invalid encryption key signature")
 	}
 	return signedEncryptionKey[64:], nil
 }
