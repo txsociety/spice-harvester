@@ -44,9 +44,9 @@ type NewInvoice struct {
 }
 
 type NewKey struct {
-	WalletVersion       string `json:"wallet_version"`
-	PublicKey           string `json:"public_key"`
-	SignedEncryptionKey string `json:"signed_encryption_key"`
+	WalletVersion string `json:"wallet_version"`
+	PublicKey     string `json:"public_key"`
+	Cert          string `json:"cert"`
 }
 
 func (h *Handler) createInvoice(w http.ResponseWriter, r *http.Request) {
@@ -379,17 +379,21 @@ func convertNewKey(account ton.AccountID, newKey NewKey) ([]byte, error) {
 		return nil, errors.New("invalid public key")
 	}
 	// wallet public key valid for account
-	signedEncryptionKey, err := hex.DecodeString(newKey.SignedEncryptionKey)
+	cert, err := hex.DecodeString(newKey.Cert)
 	if err != nil {
 		return nil, err
 	}
-	if len(signedEncryptionKey) != 64+32 {
-		return nil, errors.New("invalid encryption key")
+	certLen := len(cert)
+	if certLen != 4+32+64 { // 4 - role, 32 - key, 64 - sign
+		return nil, errors.New("invalid cert len")
 	}
-	if !ed25519.Verify(pubkey, signedEncryptionKey[64:], signedEncryptionKey[:64]) {
-		return nil, errors.New("invalid encryption key")
+	if string(cert[:4]) != "meta" {
+		return nil, errors.New("invalid cert role")
 	}
-	return signedEncryptionKey[64:], nil
+	if !ed25519.Verify(pubkey, cert[:4+32], cert[certLen-64:]) {
+		return nil, errors.New("invalid cert signature")
+	}
+	return cert[4 : 4+32], nil
 }
 
 func validateMetadata(meta core.InvoiceMetadata) error {
