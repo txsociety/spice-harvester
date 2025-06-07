@@ -2,6 +2,7 @@ package api
 
 import (
 	"crypto/ed25519"
+	"embed"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -17,21 +18,26 @@ import (
 	"time"
 )
 
+//go:embed static/*
+var staticFiles embed.FS
+
 type Handler struct {
 	db               storage
 	adnlAddress      *ton.Bits256
 	paymentPrefixes  map[string]string
 	currencies       map[string]core.ExtendedCurrency
 	ourEncryptionKey ed25519.PrivateKey
+	domain           string
 }
 
-func NewHandler(db storage, currencies map[string]core.ExtendedCurrency, adnlAddress *ton.Bits256, paymentPrefixes map[string]string, ourEncryptionKey ed25519.PrivateKey) *Handler {
+func NewHandler(db storage, currencies map[string]core.ExtendedCurrency, adnlAddress *ton.Bits256, paymentPrefixes map[string]string, ourEncryptionKey ed25519.PrivateKey, domain string) *Handler {
 	return &Handler{
 		db:               db,
 		currencies:       currencies,
 		adnlAddress:      adnlAddress,
 		paymentPrefixes:  paymentPrefixes,
 		ourEncryptionKey: ourEncryptionKey,
+		domain:           domain,
 	}
 }
 
@@ -44,9 +50,9 @@ type NewInvoice struct {
 }
 
 type NewKey struct {
-	WalletVersion       string `json:"wallet_version"`
-	PublicKey           string `json:"public_key"`
-	SignedEncryptionKey string `json:"signed_encryption_key"`
+	WalletVersion string `json:"wallet_version"`
+	PublicKey     string `json:"public_key"`
+	Cert          string `json:"cert"`
 }
 
 func (h *Handler) createInvoice(w http.ResponseWriter, r *http.Request) {
@@ -296,6 +302,35 @@ func (h *Handler) getInvoicePublic(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handler) getManifest(w http.ResponseWriter, r *http.Request) {
+	res := struct {
+		URL     string `json:"url"`
+		Name    string `json:"name"`
+		IconURL string `json:"iconUrl"`
+	}{
+		URL:     fmt.Sprintf("https://%s/", h.domain),
+		Name:    "Payment",
+		IconURL: fmt.Sprintf("https://%s/tonpay/public/static/logo.png", h.domain),
+	}
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Content-Type", "application/json")
+	err := json.NewEncoder(w).Encode(res)
+	if err != nil {
+		slog.Error("encode manifest", "error", err)
+	}
+}
+
+func handleStatic(h http.Handler) http.Handler {
+	// TODO: add recover?
+	return http.StripPrefix("/tonpay/public", h)
+}
+
+func (h *Handler) getInvoiceRender(w http.ResponseWriter, r *http.Request) {
+	http.ServeFileFS(w, r, staticFiles, "static/index.html")
+}
+
 func RegisterHandlers(mux *http.ServeMux, h *Handler, token string) {
 	// private endpoints
 	mux.HandleFunc("POST /tonpay/private/api/v1/invoice", recoverMiddleware(authMiddleware(h.createInvoice, token)))
@@ -306,6 +341,9 @@ func RegisterHandlers(mux *http.ServeMux, h *Handler, token string) {
 	mux.HandleFunc("GET /tonpay/public/api/v1/invoices/{id}/metadata", recoverMiddleware(h.getEncryptedData))
 	mux.HandleFunc("POST /tonpay/public/api/v1/keys/{account}/commit", recoverMiddleware(h.commitKey))
 	mux.HandleFunc("GET /tonpay/public/api/v1/invoices/{id}", recoverMiddleware(h.getInvoicePublic))
+	mux.HandleFunc("GET /tonpay/public/manifest", recoverMiddleware(h.getManifest))
+	mux.Handle("GET /tonpay/public/static/", handleStatic(http.FileServerFS(staticFiles)))
+	mux.HandleFunc("GET /tonpay/public/invoice/{id}", recoverMiddleware(h.getInvoiceRender))
 }
 
 func (h *Handler) convertNewInvoice(newInvoice NewInvoice, recipient ton.AccountID) (*core.Invoice, error) {
@@ -379,17 +417,21 @@ func convertNewKey(account ton.AccountID, newKey NewKey) ([]byte, error) {
 		return nil, errors.New("invalid public key")
 	}
 	// wallet public key valid for account
-	signedEncryptionKey, err := hex.DecodeString(newKey.SignedEncryptionKey)
+	cert, err := hex.DecodeString(newKey.Cert)
 	if err != nil {
 		return nil, err
 	}
-	if len(signedEncryptionKey) != 64+32 {
-		return nil, errors.New("invalid encryption key")
+	certLen := len(cert)
+	if certLen != 4+32+64 { // 4 - role, 32 - key, 64 - sign
+		return nil, errors.New("invalid cert len")
 	}
-	if !ed25519.Verify(pubkey, signedEncryptionKey[64:], signedEncryptionKey[:64]) {
-		return nil, errors.New("invalid encryption key")
+	if string(cert[:4]) != "meta" {
+		return nil, errors.New("invalid cert role")
 	}
-	return signedEncryptionKey[64:], nil
+	if !ed25519.Verify(pubkey, cert[:4+32], cert[certLen-64:]) {
+		return nil, errors.New("invalid cert signature")
+	}
+	return cert[4 : 4+32], nil
 }
 
 func validateMetadata(meta core.InvoiceMetadata) error {

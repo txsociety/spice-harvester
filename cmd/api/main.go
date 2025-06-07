@@ -119,7 +119,7 @@ func main() {
 	}
 
 	mux := http.NewServeMux()
-	handler := api.NewHandler(dbClient, cfg.Currencies, adnlAddr, cfg.PaymentPrefixes, ourEncryptionKey)
+	handler := api.NewHandler(dbClient, cfg.Currencies, adnlAddr, cfg.PaymentPrefixes, ourEncryptionKey, cfg.Domain)
 	api.RegisterHandlers(mux, handler, cfg.Token)
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%v", cfg.Port),

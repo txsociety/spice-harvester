@@ -34,3 +34,12 @@ Authorization: Bearer {{token}}
 ###
 GET {{host}}/tonpay/private/api/v1/invoices
 Authorization: Bearer {{token}}
+
+###
+GET {{host}}/tonpay/public/manifest
+
+###
+GET {{host}}/tonpay/public/static/logo.png
+
+###
+GET {{host}}/tonpay/public/invoice/01970c00-a927-77e4-88fa-67d72ae4c4be
