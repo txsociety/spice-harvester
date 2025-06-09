@@ -14,6 +14,7 @@ in multiple currencies (TON, Jettons). It also features a mechanism to deliver p
 - [Invoice state diagram](#Invoice-state-diagram)
 - [Notifications](#Notifications)
 - [Payment methods](#Payment-methods)
+- [Payment app](#Payment-app)
 - [Deploy](#Deploy)
 
 ## Features
@@ -166,6 +167,12 @@ There is an alternative payment method. For this, you need to attach the invoice
 In this case, the necessary information for metadata detection will not be attached. Metadata and payment history will be unavailable.
 This method is not recommended by default and should only be used as a backup if the first method is unavailable.
 
+## Payment app
+
+A minimalist web application is integrated into the service to demonstrate payment methods. 
+For its full functionality, a domain and an issued certificate are required (this is necessary for the correct operation of TON Connect).
+The application is accessible at the path `/tonpay/public/invoice/{id}`, where id is the specific invoice ID for payment.
+
 ## Deploy
 
 To deploy the service, you will need to fill in the [Environment variables](#ENV-variables).  
@@ -187,6 +194,7 @@ You can specify them directly in the file [docker-compose.yml](/docker-compose.y
 | `PAYMENT_PREFIXES`  | string | no        | list of prefixes for generating payment links: `name_1 prefix1,name_1 prefix2` <br/>The `name` is used as a key in the list of payment links (see [Invoice layout](#Invoice-layout)) <br/>The prefixes `ton://` with `universal` name and `https://app.tonkeeper.com/` with `tonkeeper` name are supported by default and do not need to be added |
 | `KEY`               | string | no        | 32 bytes written in hex format (see [Key generation](#Key-generation))                                                                                                                                                                                                                                                                            |
 | `EXTERNAL_IP`       | string | no        | external IP of the TON proxy. It can be determined automatically if not specified                                                                                                                                                                                                                                                                 |
+| `DOMAIN`            | string | no        | domain name must be specified when using the payment app. See the [Payment app](#Payment-app). Example: `payments.app`.                                                                                                                                                                                                                           |
 
 ### Configuring the Jetton list
 
@@ -224,6 +232,7 @@ HARVESTER_LITE_SERVERS="<IP>:<PORT>:<KEY>,5.9.10.15:48014:3XO67K/qi+gu3T9v8G2hx1
 HARVESTER_KEY="<32_random_bytes_in_hex_representation>"
 HARVESTER_JETTONS="<ticker1> <decimals1> <address1>,<ticker2> <decimals2> <address2>,USDT 6 EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"
 HARVESTER_WEBHOOK_ENDPOINT="https://your-server.com/webhook"
+DOMAIN="payments.app"
 
 # harvester-reverse-proxy
 # optional parameters:

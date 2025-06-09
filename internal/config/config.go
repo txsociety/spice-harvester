@@ -22,6 +22,7 @@ type Config struct {
 	Jettons         []jetton            `env:"JETTONS"`
 	WebhookEndpoint string              `env:"WEBHOOK_ENDPOINT"`
 	PaymentPrefixes prefixes            `env:"PAYMENT_PREFIXES"`
+	Domain          string              `env:"DOMAIN"`
 	// Key for generating a private key for metadata encryption and obtaining the adnl address of the proxy server
 	Key        string `env:"KEY"` // 32 bytes in hex representation,
 	Currencies map[string]core.ExtendedCurrency
