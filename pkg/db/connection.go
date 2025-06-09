@@ -65,7 +65,7 @@ func migrate(ctx context.Context, postgres *pgxpool.Pool) error {
 		}
 		matches := regexp.MustCompile(`^(\d+)_(\w+)\.(.+)\.sql$`).FindStringSubmatch(f.Name())
 		if len(matches) != 4 {
-			return fmt.Errorf("invalid filemame %s", f.Name())
+			return fmt.Errorf("invalid filename %s", f.Name())
 		}
 		fVersion, _ := strconv.Atoi(matches[1])
 		op := matches[3]

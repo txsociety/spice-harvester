@@ -39,6 +39,7 @@ services:
       JETTONS: ${HARVESTER_JETTONS}
       WEBHOOK_ENDPOINT: ${HARVESTER_WEBHOOK_ENDPOINT}
       PAYMENT_PREFIXES: ${HARVESTER_PAYMENT_PREFIXES}
+      DOMAIN: ${HARVESTER_DOMAIN}
     networks:
       - harvester-network
   harvester-reverse-proxy:
