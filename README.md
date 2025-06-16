@@ -232,7 +232,7 @@ HARVESTER_LITE_SERVERS="<IP>:<PORT>:<KEY>,5.9.10.15:48014:3XO67K/qi+gu3T9v8G2hx1
 HARVESTER_KEY="<32_random_bytes_in_hex_representation>"
 HARVESTER_JETTONS="<ticker1> <decimals1> <address1>,<ticker2> <decimals2> <address2>,USDT 6 EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs"
 HARVESTER_WEBHOOK_ENDPOINT="https://your-server.com/webhook"
-DOMAIN="payments.app"
+HARVESTER_DOMAIN="payments.app"
 
 # harvester-reverse-proxy
 # optional parameters:
